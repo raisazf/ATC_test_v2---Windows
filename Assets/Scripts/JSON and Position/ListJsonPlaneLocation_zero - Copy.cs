@@ -9,6 +9,8 @@ using System.IO;
 using RestSharp;
 using Newtonsoft.Json;
 using System.Linq;
+using System.Reflection;
+using UnityEngine.UI;
 
 
 // During the first build and run, the app won't load planes and buttons. After the first build an run, upload the data to the directory on the headset:
@@ -16,7 +18,7 @@ using System.Linq;
 // The data file is stored in Assets/Resources on the local machine
 
 // Cou
-public class ListJsonPlaneLocation_zero_wrong : MonoBehaviour
+public class ListJsonPlaneLocation_zero_Copy : MonoBehaviour
 {
 
     [SerializeField] public GameObject GlobalSystem;
@@ -37,12 +39,14 @@ public class ListJsonPlaneLocation_zero_wrong : MonoBehaviour
 
     public static List<GameObject> flightButtons;
     public static List<GameObject> planes;
-    private List<GameObject> planesPreviousLocation;
+    public  List<GameObject> planesPreviousLocation;
+    public Vector3[] planesPreviousPosition;
 
     private List<string> flightNames;
     private List<string> flightNamesPrevious;
 
     private List<flights> requestFlightResponses;
+    private flights flightResponse;
 
     private float latitude = 0f; // lat
     private float longitude = 0f; // lng
@@ -50,7 +54,8 @@ public class ListJsonPlaneLocation_zero_wrong : MonoBehaviour
 
     private float radius;
     private float newRadius;
-
+    //private float xPos, yPos, zPos;
+    
     private Vector3 newPosition;
 
     private List<float> latList;
@@ -62,10 +67,11 @@ public class ListJsonPlaneLocation_zero_wrong : MonoBehaviour
     private float altIndex;
 
     private int donotIncludRequest = 1;
+    private List<int> requestNumbers; // how many requests
     private string jsonString;
 
     //private int count = 0;
-    public float interval = 1f;
+    public float interval = 600f;
     private float time = 0.0f;
     public float transitionDuration = 1f;
     public float speed = 0.1f;
@@ -79,22 +85,16 @@ public class ListJsonPlaneLocation_zero_wrong : MonoBehaviour
         flightButtons = new List<GameObject>();
         flightNamesPrevious = new List<string>();
         flightNames = new List<string>();
-        //flightResponse = new flights();
-        //requestNumbers = new List<int>();
+        flightResponse = new flights();
+        requestNumbers = new List<int>();
         requestFlightResponses = new List<flights>();
         planesPreviousLocation = new List<GameObject>();
-
+        planesPreviousPosition = new Vector3[20];
         radius = radiusAdjustment * GlobalSystem.transform.localScale.x;
 
         cameraRig = FindObjectOfType<OVRCameraRig>();
 
-        requestFlightResponses = ReadJson();
-
-        for (int i = 0; i < requestFlightResponses.Count - donotIncludRequest; i++) // the last request could be corrupted
-        {
-            var result = string.Join(", ", requestFlightResponses[i].response.Select(s => $"{s.lat}, {s.lng}"));
-            Debug.Log("After Responses index " + i + " responses " + result);
-        }
+        ReadJson();
 
     }
 
@@ -102,26 +102,26 @@ public class ListJsonPlaneLocation_zero_wrong : MonoBehaviour
     {
         radius = radiusAdjustment * GlobalSystem.transform.localScale.x;
 
-        //Debug.Log("Number of responses  = " + requestFlightResponses.Count);
-
         // This loop is executing PlaneLocation every interval. Right now it is set to 60sec
         for (responseIndex = 0; responseIndex < requestFlightResponses.Count; responseIndex++)
         {
-            //flightResponse = requestFlightResponses[responseIndex];
-            //Debug.Log("Response index = " + responseIndex + " total count = " + (requestFlightResponses.Count));
- 
-                //var result = string.Join(", ", requestFlightResponses[responseIndex].response.Select(s => $"{s.lat}, {s.lng}"));
-                //Debug.Log("Inside Responses index " + responseIndex + " responses " + result);
+            Debug.Log("Index in Update " + responseIndex);
 
-            PlaneLocation(requestFlightResponses[responseIndex]);
 
-            //string result = string.Join(", ", planesPreviousLocation.Select(s => $"{s.transform.position}"));
-            //Debug.Log(" previous BEFORE " + result);
 
-            planesPreviousLocation = planes.ToList();
+            time += Time.deltaTime;
+            while (time >= interval)
+            {
+                GameObject menuPanel = GameObject.Find("MenuPanel");
+                //GameObject loockAtGlobal = GameObject.Find("LookAt");
+                Vector3 cameraPosition = cameraRig.centerEyeAnchor.transform.position;
+                menuPanel.transform.LookAt(cameraPosition);
+                //loockAtGlobal.transform.LookAt(cameraPosition);
 
-            //result = string.Join(", ", planesPreviousLocation.Select(s => $"{s.transform.position}"));
-            //Debug.Log(" previous AFTER " + result);
+                flightResponse = requestFlightResponses[responseIndex];
+                PlaneLocation();
+                time -= interval;
+            }
         }
     }
 
@@ -130,13 +130,16 @@ public class ListJsonPlaneLocation_zero_wrong : MonoBehaviour
     {
 
         if (indexRemove < 0) return;
-
         Destroy(planes[indexRemove]);
         planes.RemoveAt(indexRemove);
+
         Destroy(flightButtons[indexRemove]);
         flightButtons.RemoveAt(indexRemove);
         flightNames.RemoveAt(indexRemove);
+        
 
+        //if (planes[indexRemove] != null) Debug.Log("Plane not removed " + planes[indexRemove].name);
+        //if (flightButtons[indexRemove] != null) Debug.Log("Button not removed " + flightButtons[indexRemove].name);
 
     }
 
@@ -176,12 +179,20 @@ public class ListJsonPlaneLocation_zero_wrong : MonoBehaviour
 
         //planes[flightNames.Count - 1].GetComponentInChildren<TextMeshPro>().text = flight.reg_number; // too busy when every plane has a number displayed
 
+        GameObject menuPanel = GameObject.Find("MenuPanel");
+        Vector3 cameraPosition = cameraRig.centerEyeAnchor.transform.position;
+        menuPanel.transform.LookAt(cameraPosition);
+
         flightButtons.Add(Instantiate(flightButtonsTemplate,
             new Vector3(flightButtonsTemplate.transform.position.x,
             flightButtonsTemplate.transform.position.y, flightButtonsTemplate.transform.position.z),
-            Quaternion.Euler(0f, 0f, 0f), flightButtonsParent.transform));
+            Quaternion.Euler(0f,  menuPanel.transform.eulerAngles.y/2, 0f), flightButtonsParent.transform));
+        flightButtons[flightNames.Count - 1].transform.Rotate(transform.up, -(180f - menuPanel.transform.eulerAngles.y / 2));
         flightButtons[flightNames.Count - 1].name = flight.reg_number;
+        flightButtons[flightNames.Count - 1].tag = "Untagged";
 
+        //Debug.Log("Add button " + flightButtons[flightNames.Count - 1].name + " number of buttons: " + flightButtons.Count);
+        //Debug.Log("Add plane " + planes[flightNames.Count - 1].name + " number of planes: " + planes.Count);
 
 
         // remove scale for altitude separation in VR
@@ -193,11 +204,11 @@ public class ListJsonPlaneLocation_zero_wrong : MonoBehaviour
         string temp = flight.reg_number + "    " + flight.lat.ToString("F4") + "   " + flight.lng.ToString("F4") +
             "    " + flight.alt.ToString("F0") + "    " + flight.dir.ToString("F0");
 
-        //flightButtons[flightNames.Count - 1].GetComponentInChildren<TextMeshProUGUI>().text = temp;
+        flightButtons[flightNames.Count - 1].GetComponentInChildren<TextMeshProUGUI>().text = temp;
 
     }
 
-    public void PlaneLocation(flights flightResponse)
+    public void PlaneLocation()
     {
 
         int indexUpdate = 0;
@@ -205,9 +216,9 @@ public class ListJsonPlaneLocation_zero_wrong : MonoBehaviour
 
         var tempLatList = new List<float>();
 
-        latList = reorderParameterList("lat", airportLatitude, flightResponse);
-        lngList = reorderParameterList("lng", airpotLongitude, flightResponse);
-        altList = reorderParameterList("alt", flightResponse.response.Average(item => item.alt), flightResponse);
+        latList = reorderParameterList("lat", airportLatitude);
+        lngList = reorderParameterList("lng", airpotLongitude);
+        altList = reorderParameterList("alt", flightResponse.response.Average(item => item.alt));
 
         foreach (var flight in flightResponse.response)
         {
@@ -287,16 +298,23 @@ public class ListJsonPlaneLocation_zero_wrong : MonoBehaviour
         }
 
         flightNamesPrevious = flightNames;
-        string result = string.Join(", ", planesPreviousLocation.Select(s => $"{s.transform.position}"));
-        Debug.Log(" END PREVIOUS positions " + result);
-        result = string.Join(", ", planes.Select(s => $"{s.transform.position}"));
-        Debug.Log(" END  CURRENT positions " + result);
 
+        //Debug.Log("Response index " + responseIndex);
+        //string result = string.Join(", ", planesPreviousLocation.Select(s => $"{s.transform.position}"));
+        //Debug.Log(" END PREVIOUS positions " + result);
+        //result = string.Join(", ", planes.Select(s => $"{s.transform.position}"));
+        //Debug.Log(" END  CURRENT positions " + result);
+        // planePreviousLocation is not saving current planes location to be used in TransitionCoroutine (see below) as a startPosition
+        // TransitionCoroutine is called from UpdatePlanePosition between %%%%%%%%%%%%%
+        //planesPreviousLocation = new List<GameObject>(planes);
+        //planesPreviousLocation = new List<GameObject>(planes.ToList());
+        planesPreviousLocation = new List<GameObject>(planes.Select(x => x));
+        planesPreviousPosition = planes.Select(s => s.transform.position).ToArray();
+        //result = string.Join(", ", planesPreviousLocation.Select(s => $"{s.transform.position}"));
+        //Debug.Log(" UPDATED PREVIOUS positions " + result);
         //SaveFlightInfo(flightNames, flightNames.Count);
 
     }
-
-
 
     private IEnumerator TransitionCoroutine(Vector3 startPosition, Vector3 endPosition, int currentIndex)
     {
@@ -305,11 +323,11 @@ public class ListJsonPlaneLocation_zero_wrong : MonoBehaviour
 
         while (elapsedTime < transitionDuration)
         {
-            if (currentIndex < 0 || currentIndex > planes.Count - 1) yield break;
+            if (currentIndex < 0 || currentIndex > planes.Count-1) yield break;
 
             planes[currentIndex].transform.position = Vector3.Lerp(startPosition, endPosition, (elapsedTime / transitionDuration));
             elapsedTime += Time.deltaTime;
-
+            Debug.Log(" START " + startPosition + " CURRENT " + planes[currentIndex].transform.position + " END " + endPosition);
             yield return null;
         }
 
@@ -335,22 +353,21 @@ public class ListJsonPlaneLocation_zero_wrong : MonoBehaviour
 
         // %%%%%%%%%%%%%%
         // Attempting to smooth transition
+        int previousIndex = planesPreviousLocation.FindIndex(a => a.transform.name.Contains(planes[currentIndex].name));
+        Vector3 endPosition = GlobalSystem.transform.position + rotation * (planes[currentIndex].transform.position - GlobalSystem.transform.position);
 
-        int previousIndex = planesPreviousLocation.FindIndex(obj => obj.name == (planes[currentIndex].name));
-        var endPosition = GlobalSystem.transform.position + rotation * (planes[currentIndex].transform.position - GlobalSystem.transform.position);
-
-        string result = string.Join(", ", planesPreviousLocation.Select(s => $"{s.transform.position}"));
-        //Debug.Log(" REPEATED previous index " + previousIndex + " current index " + currentIndex + " prev value " + planesPreviousLocation[previousIndex].transform.position + " curr value " + GlobalSystem.transform.position + rotation * (planes[currentIndex].transform.position - GlobalSystem.transform.position));
-
-        if (responseIndex > 0 && previousIndex >= 0)
-        {
+        //if (previousIndex >= 0 && responseIndex > 0)
+        //{
             // startPosition doesn't seem correct
-            var startPosition = planesPreviousLocation[previousIndex].transform.position;
-            var diff = endPosition - startPosition;
-            //Debug.Log("previous position " + startPosition + "  previous index " + previousIndex +" current position " + endPosition + " current index " + currentIndex + " difference " + diff);
+            //Vector3 startPosition = planesPreviousLocation[previousIndex].transform.position;
+            Vector3 startPosition = planesPreviousPosition[previousIndex];
+            Vector3 diff = endPosition - startPosition;
+            //string result = string.Join(", ", planesPreviousLocation.Select(s => $"{s.transform.position}"));
+            //Debug.Log(" UPDATE position " + result);
 
+            //Debug.Log(" STARTING (previous) position " + startPosition + " previous index " + previousIndex + " END (current) " + endPosition + " current index " + currentIndex + " difference " + diff);
             //StartCoroutine(TransitionCoroutine(startPosition, endPosition, currentIndex));
-        }
+        //}
         //%%%%%%%%%%%%%%%%
 
         planes[currentIndex].transform.position = GlobalSystem.transform.position + rotation * (planes[currentIndex].transform.position - GlobalSystem.transform.position);
@@ -374,13 +391,17 @@ public class ListJsonPlaneLocation_zero_wrong : MonoBehaviour
             planes[currentIndex].transform.Rotate(0f, 0f, -flight.dir, Space.Self);
         }
 
+
+        //flightButtons[currentIndex].GetComponent<RectTransform>().transform.Rotate(0f, 90f, 0f, Space.Self);
+
         // update button information
         string temp = flight.reg_number + "     " + flight.lat.ToString("F3") + "      " + flight.lng.ToString("F3") + "      " + flight.alt.ToString("F0") + "     " + flight.dir.ToString("F0");
-        flightButtons[currentIndex].GetComponentInChildren<TextMeshProUGUI>().text = temp;
+        if (flightNames[currentIndex] == flight.reg_number)
+            flightButtons[currentIndex].GetComponentInChildren<TextMeshProUGUI>().text = temp;
 
     }
 
-    private List<float> reorderParameterList(string infoType, float splitvalue, flights flightResponse)
+    private List<float> reorderParameterList(string infoType, float splitvalue)
     {
 
         List<float> localList;
@@ -439,11 +460,8 @@ public class ListJsonPlaneLocation_zero_wrong : MonoBehaviour
         writer.Close();
     }
 
-    public List<flights> ReadJson()
+    public void ReadJson()
     {
-
-        List<flights> localRequestFlightResponses = new List<flights>();
-        List<int> requestNumbers = new List<int>();
 
         // During the first build and run, the app won't load planes and buttons. After the first build an run, place the data file here:
         // This PC\Quest Pro\Internal shared storage\Android\data\com.DefaultCompany.ATC_test_v2\files and it should work properly
@@ -487,7 +505,7 @@ public class ListJsonPlaneLocation_zero_wrong : MonoBehaviour
                 end = requestNumbers[i + 1] - 2;
             }
 
-            var flightResponse = JsonConvert.DeserializeObject<flights>(jsonString[start..end]);
+            flightResponse = JsonConvert.DeserializeObject<flights>(jsonString[start..end]);
 
             if (i == 0)
             {
@@ -497,18 +515,9 @@ public class ListJsonPlaneLocation_zero_wrong : MonoBehaviour
 
                 }
             }
-            localRequestFlightResponses.Add(flightResponse);
+            requestFlightResponses.Add(flightResponse);
 
         }
-
-        for (int i = 0; i < requestNumbers.Count - donotIncludRequest; i++) // the last request could be corrupted
-        {
-            var result = string.Join(", ", localRequestFlightResponses[i].response.Select(s => $"{s.lat}, {s.lng}"));
-            Debug.Log("Before Responses index " + i + " responses " + result);
-        }
-
-        Debug.Log("Read " + localRequestFlightResponses.Count);
-
-        return localRequestFlightResponses;
     }
+
 }

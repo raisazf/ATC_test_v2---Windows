@@ -14834,21 +14834,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   GlobalSystem: {fileID: 500949764}
-  marker: {fileID: 763413969}
+  planePrefab: {fileID: 763413969}
   flightButtonsTemplate: {fileID: 1913843836}
-  flightButtonsParent: {fileID: 1316002957}
   radiusAdjustment: 20.2
   airportLatitude: 38.94846
   airpotLongitude: -77.44057
   haloMat: {fileID: 2100000, guid: 0703bd2dd24c545418c78bb8cda85a26, type: 2}
-  altitudeScale: 600
-  altIndexAjustment: 0.03
-  positionScale: 0.01
-  indexAdjustment: 4
-  planesPreviousLocation: []
-  planesPreviousPosition: []
-  interval: 1
-  transitionDuration: 4
+  altitudeAdjustment: 1
+  positionAdjustment: 10
+  interval: 100
+  transitionDuration: 1
   speed: 0.1
 --- !u!114 &1817815801
 MonoBehaviour:
