@@ -467,8 +467,8 @@ public class ListJsonPlaneLocation_zero_Copy : MonoBehaviour
         // This PC\Quest Pro\Internal shared storage\Android\data\com.DefaultCompany.ATC_test_v2\files and it should work properly
         // 
 
-        StreamReader streamReader = new StreamReader(Application.persistentDataPath + Path.AltDirectorySeparatorChar + "AirLab_data_new.json");
-        var path = Application.persistentDataPath + Path.AltDirectorySeparatorChar + "AirLab_data_new.json";
+        StreamReader streamReader = new StreamReader(Application.persistentDataPath + Path.AltDirectorySeparatorChar + "AirLab_data_next.json");
+        var path = Application.persistentDataPath + Path.AltDirectorySeparatorChar + "AirLab_data_next.json";
 
         streamReader.BaseStream.Position = 0;
         jsonString = streamReader.ReadToEnd();

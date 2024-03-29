@@ -43,17 +43,17 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
     
     private List<string> flightNames;
     private List<string> flightNamesPrevious;
-    private List<GameObject> planesPreviousLocation;
+    private List<Vector3> planesPositionPrevious;
+    private List<Quaternion> planesRotationPrevious;
     private List<flights> requestFlightResponses;
     private flights flightResponse;
 
-    private List<GameObject> planesPreviousPositionList;
+    //private List<GameObject> planesPreviousPositionList;
 
     //private int count = 0;
     public float interval = 600f;
     private float time = 0.0f;
     public float transitionDuration = 1f;
-    public float speed = 0.1f;
 
     private OVRCameraRig cameraRig;
     void Start()
@@ -65,21 +65,22 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
         flightNames = new List<string>();
         flightResponse = new flights();
         requestFlightResponses = new List<flights>();
-        planesPreviousPositionList = new List<GameObject>();
-        cameraRig = FindObjectOfType<OVRCameraRig>();
+        planesPositionPrevious = new List<Vector3>();
+        planesRotationPrevious = new List<Quaternion>();
+
+       //planesPreviousPositionList = new List<GameObject>();
+       cameraRig = FindObjectOfType<OVRCameraRig>();
 
         ReadJson();
 
     }
-
     public void Update()
     {
-        float radius = radiusAdjustment * GlobalSystem.transform.localScale.x;
+        //time = 0;
 
         // This loop is executing PlaneLocation every interval. Right now it is set to 60sec
-        for (int responseIndex = 0; responseIndex < requestFlightResponses.Count; responseIndex++)
+        for (int responseIndex = 0; responseIndex < requestFlightResponses.Count-1; responseIndex++)
         {
-
             time += Time.deltaTime;
             while (time >= interval)
             {
@@ -177,6 +178,9 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
             tempResponseNames.Add(flight.reg_number);
         }
 
+         var result2 = string.Join(", ", flightResponse.response.Select(s => s.reg_number));
+        var result1 = string.Join(", ", flightResponse.response.Select(s => s.alt));
+        //Debug.Log(" Names " + result2 + " Alt " + result1);
         foreach (var plane in planes)
         {
             Vector3 cameraPosition = cameraRig.centerEyeAnchor.transform.position;
@@ -194,7 +198,7 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
             {
                 indexUpdate = flightNames.FindIndex(a => a.Contains(flight.reg_number));
                 if (indexUpdate >= 0)
-                    UpdatePlanePosition(indexUpdate, flight, planesPreviousPositionList, latAdjustment, lngAdjustment, altAdjustment);
+                    UpdatePlanePosition(indexUpdate, flight, planesPositionPrevious, planesRotationPrevious, latAdjustment, lngAdjustment, altAdjustment);
             }
             else // add a new flight to the list
             {
@@ -215,13 +219,33 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
         }
 
         flightNamesPrevious = flightNames;
-        planesPreviousPositionList = new List<GameObject>(planes.Select(x => x));
+        (planesPositionPrevious, planesRotationPrevious) = CopyList(planes);
 
         //var result2 = string.Join(", ", planesPreviousPositionList.Select(s => s.transform.position));
         //Debug.Log(" Previous position in PlanePosition" + result1 + " after " + result2);
         //planesPreviousPositionArray = planes.Select(s => s.transform.position).ToArray();
 
         //SaveFlightInfo(flightNames, flightNames.Count);
+
+    }
+
+    private (List<Vector3>, List<Quaternion>) CopyList(List<GameObject> currentPlanes)
+    {
+
+        List<Vector3> planesPreviousPosition = new List<Vector3>();
+        List<Quaternion> planesPreviousRotation = new List<Quaternion>();
+        planesPreviousPosition.Clear();
+        planesPreviousRotation.Clear();
+
+        foreach (var plane in currentPlanes)
+        {
+            var tempPosition = plane.transform.position;
+            planesPreviousPosition.Add(tempPosition);
+            var tempRotation = plane.transform.rotation;
+            planesPreviousRotation.Add(tempRotation);
+        }
+
+        return (planesPreviousPosition, planesPreviousRotation);
 
     }
 
@@ -233,8 +257,14 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
         float latInx, lngInx, altInx;
 
         List<float> latReorderedList = reorderList("lat", airportLatitude);
+        //var result2 = string.Join(", ", latReorderedList.Select(s => s), );
+        //Debug.Log(" Latitude " +  result2);
         List<float> lngReorderedList = reorderList("lng", airpotLongitude);
+        //result2 = string.Join(", ", lngReorderedList.Select(s => s));
+        //Debug.Log(" Longitude " + result2);
         List<float> altReorderedList = reorderList("alt", flightResponse.response.Average(item => item.alt));
+        //result2 = string.Join(", ", altReorderedList.Select(s => s));
+        //Debug.Log(" Altitude " + result2);
 
         latInx = (float)latReorderedList.IndexOf(flight.lat)+0.1f;
         lngInx = (float)lngReorderedList.IndexOf(flight.lng)+0.1f;
@@ -249,7 +279,9 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
 
         if (flight.lat < airportLatitude)
         {
-            latAdjustment = -positionAdjustment / latInx;
+            latAdjustment = -positionAdjustment / (latAirportInx - latInx);
+            var result2 = string.Join(", ", latReorderedList.Select(s => s));
+            Debug.Log(" Latitude " + result2 + " Airport lat " + latAirportInx + " Current altitude " + flight.lat + "Current index " + latInx + " Adjustment " + latAdjustment);
         }
         else
         {
@@ -267,7 +299,7 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
 
         altAdjustment = altitudeAdjustment / altInx;
 
-        if (flight.alt < 700f) 
+        if (flight.alt == 0f) 
         {
             latAdjustment = 0f;
             lngAdjustment = 0f;
@@ -277,7 +309,7 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
         return (latAdjustment, lngAdjustment, altAdjustment);
     }
 
-    private IEnumerator TransitionCoroutine(Vector3 startPosition, Vector3 endPosition, int currentIndex)
+    private IEnumerator TransitionCoroutine(Vector3 startPosition, Vector3 endPosition, Quaternion startRotation, Quaternion endRotation, float directon, int currentIndex)
     {
 
         float elapsedTime = 0f;
@@ -287,6 +319,11 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
             if (currentIndex < 0 || currentIndex > planes.Count - 1) yield break;
 
             planes[currentIndex].transform.position = Vector3.Lerp(startPosition, endPosition, (elapsedTime / transitionDuration));
+            planes[currentIndex].transform.rotation = Quaternion.Lerp(startRotation, endRotation, elapsedTime / transitionDuration);
+            //planes[currentIndex].transform.LookAt(new Vector3(GlobalSystem.transform.position.x, GlobalSystem.transform.position.y, GlobalSystem.transform.position.z));
+
+
+            //Debug.Log("Start rotation " + startRotation.eulerAngles + " End rotation " + endRotation.eulerAngles);
             elapsedTime += Time.deltaTime;
 
             yield return null;
@@ -294,37 +331,61 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
 
     }
 
-    private void UpdatePlanePosition(int currentIndex, FlightsEmbeddedField flight, List<GameObject> planesPreviousPositionList, float latAdjustment, float lngAdjustment, float altAdjustment)
+    private void UpdatePlanePosition(int currentIndex, FlightsEmbeddedField flight, List<Vector3> planesPositionPrevious, List<Quaternion> planesRotationPrevious, float latAdjustment, float lngAdjustment, float altAdjustment)
     {
         Vector3 newPosition;
         Vector3 startPosition;
         Vector3 endPosition;
+        Quaternion startRotation;
+        Quaternion endRotation;
+        GameObject tempRotation = planes[currentIndex];
 
+         
         newPosition = GetXYZPositions(flight, latAdjustment, lngAdjustment, altAdjustment);
+        
 
-        planes[currentIndex].transform.position = newPosition;
-        planes[currentIndex].transform.rotation = Quaternion.identity;
-
-        // adjust plane location to GlobalSystem rotation
         Quaternion rotation = Quaternion.Euler(0f, -(90f - GlobalSystem.transform.rotation.eulerAngles.y), 0f);
 
+
         // Attempting to smooth transition
-        int previousIndex = planesPreviousPositionList.FindIndex(a => a.transform.name.Contains(planes[currentIndex].name));
-        endPosition = GlobalSystem.transform.position + rotation * (planes[currentIndex].transform.position - GlobalSystem.transform.position);
-        Debug.Log("Update previous index " + previousIndex);
+        int previousIndex = flightNamesPrevious.FindIndex(a => a.Contains(planes[currentIndex].name));
+        
+        // adjust plane location to GlobalSystem rotation
+        endPosition = GlobalSystem.transform.position + rotation * (newPosition - GlobalSystem.transform.position);
+        endRotation = rotation * Quaternion.identity;
+
         if (previousIndex >= 0)
         {
-            startPosition = planesPreviousPositionList[previousIndex].transform.position;
+            startPosition = planesPositionPrevious[previousIndex];
+            startRotation = planesRotationPrevious[previousIndex];
         }
         else {
             startPosition = endPosition;
+            startRotation = endRotation;
         }
-            
-        //Vector3 startPosition = planesPreviousPositionArray[previousIndex];
-        //StartCoroutine(TransitionCoroutine(startPosition, endPosition, currentIndex));
 
-        planes[currentIndex].transform.position = GlobalSystem.transform.position + rotation * (planes[currentIndex].transform.position - GlobalSystem.transform.position);
-        planes[currentIndex].transform.rotation = rotation * planes[currentIndex].transform.rotation;
+        tempRotation.transform.rotation = endRotation;
+        tempRotation.transform.LookAt(new Vector3(GlobalSystem.transform.position.x, GlobalSystem.transform.position.y, GlobalSystem.transform.position.z));
+        // adjust route direction. Set to zero if grounded
+        if (altAdjustment == 0f)
+        {
+            tempRotation.transform.Rotate(0f, 0f, 0f, Space.Self);
+        }
+        else
+        {
+            tempRotation.transform.Rotate(0f, 0f, -flight.dir, Space.Self);
+        }
+
+        endRotation = tempRotation.transform.rotation;
+
+        StartCoroutine(TransitionCoroutine(startPosition, endPosition, startRotation, endRotation, -flight.dir, currentIndex));
+
+        planes[currentIndex].transform.position = endPosition;
+        planes[currentIndex].transform.rotation = endRotation;
+        //planes[currentIndex].transform.position = newPosition;
+        //planes[currentIndex].transform.rotation = Quaternion.identity; 
+        //planes[currentIndex].transform.position = GlobalSystem.transform.position + rotation * (planes[currentIndex].transform.position - GlobalSystem.transform.position);
+        //planes[currentIndex].transform.rotation = rotation * planes[currentIndex].transform.rotation;
 
         // plane is perpendicular to surface normal
         planes[currentIndex].transform.LookAt(new Vector3(GlobalSystem.transform.position.x, GlobalSystem.transform.position.y, GlobalSystem.transform.position.z));
@@ -334,7 +395,6 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
             planes[currentIndex].gameObject.GetComponentsInChildren<Renderer>()[2].material = haloMat; // highlight with a different material
         }
 
-        // adjust route direction. Set to zero if grounded
         if (altAdjustment == 0f)
         {
             planes[currentIndex].transform.Rotate(0f, 0f, 0f, Space.Self);
@@ -416,8 +476,8 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
     // This PC\Quest Pro\Internal shared storage\Android\data\com.DefaultCompany.ATC_test_v2\files and it should work properly
     // 
 
-    StreamReader streamReader = new StreamReader(Application.persistentDataPath + Path.AltDirectorySeparatorChar + "AirLab_data_new.json");
-        var path = Application.persistentDataPath + Path.AltDirectorySeparatorChar + "AirLab_data_new.json";
+        StreamReader streamReader = new StreamReader(Application.persistentDataPath + Path.AltDirectorySeparatorChar + "AirLab_data_next.json");
+        var path = Application.persistentDataPath + Path.AltDirectorySeparatorChar + "AirLab_data_next.json";
 
         streamReader.BaseStream.Position = 0;
         jsonString = streamReader.ReadToEnd();

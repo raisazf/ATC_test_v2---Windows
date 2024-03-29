@@ -14842,9 +14842,8 @@ MonoBehaviour:
   haloMat: {fileID: 2100000, guid: 0703bd2dd24c545418c78bb8cda85a26, type: 2}
   altitudeAdjustment: 1
   positionAdjustment: 10
-  interval: 100
-  transitionDuration: 1
-  speed: 0.1
+  interval: 2000
+  transitionDuration: 20
 --- !u!114 &1817815801
 MonoBehaviour:
   m_ObjectHideFlags: 0
