@@ -30,7 +30,7 @@ public class ButtonPlaneInteraction : MonoBehaviour
     }
     public void Start()
     {
-        foreach (GameObject button in ListJsonPlaneLocation_zero.flightButtons)
+        foreach (GameObject button in ATC_Main.flightButtons)
         {
             // Add a listener to the button's onClick event
             button.GetComponent<Button>().onClick.AddListener(() => ButtonClicked(button.GetComponent<Button>()));
@@ -51,8 +51,8 @@ public class ButtonPlaneInteraction : MonoBehaviour
     {
 
         
-        int indxPlane = ListJsonPlaneLocation_zero.planes.FindIndex(plane => plane.tag == "Selected");
-        int indxButton = ListJsonPlaneLocation_zero.flightButtons.FindIndex(button => button.tag == "Activated");
+        int indxPlane = ATC_Main.planes.FindIndex(plane => plane.tag == "Selected");
+        int indxButton = ATC_Main.flightButtons.FindIndex(button => button.tag == "Activated");
 
         Debug.Log("Aircraft SelectPlane() indxPlane: " + indxPlane + " indxButton: " + indxButton + " Previous button name " + previousButtonName);
 
@@ -60,28 +60,28 @@ public class ButtonPlaneInteraction : MonoBehaviour
         {
             Debug.Log("Aircraft original selection 1");
             gameObject.tag = "Activated";
-            indxButton = ListJsonPlaneLocation_zero.flightButtons.FindIndex(button => button.tag == "Activated");
+            indxButton = ATC_Main.flightButtons.FindIndex(button => button.tag == "Activated");
 
-            originalMat = ListJsonPlaneLocation_zero.planes[indxButton].gameObject.GetComponentsInChildren<Renderer>()[2].material;
+            originalMat = ATC_Main.planes[indxButton].gameObject.GetComponentsInChildren<Renderer>()[2].material;
 
             Debug.Log("Aircraft original selection 2 ");
 
-            ListJsonPlaneLocation_zero.planes[indxButton].gameObject.GetComponentsInChildren<Renderer>()[2].material = selectedMat; // highlight with a different material
-            ListJsonPlaneLocation_zero.planes[indxButton].gameObject.GetComponentInChildren<TextMeshPro>().text = gameObject.name; // display registration name
-            ListJsonPlaneLocation_zero.planes[indxButton].gameObject.tag = "Selected";
+            ATC_Main.planes[indxButton].gameObject.GetComponentsInChildren<Renderer>()[2].material = selectedMat; // highlight with a different material
+            ATC_Main.planes[indxButton].gameObject.GetComponentInChildren<TextMeshPro>().text = gameObject.name; // display registration name
+            ATC_Main.planes[indxButton].gameObject.tag = "Selected";
 
             Debug.Log("Aircraft original selection 3 ");
 
-            colors = ListJsonPlaneLocation_zero.flightButtons[indxButton].GetComponent<Button>().colors;
+            colors = ATC_Main.flightButtons[indxButton].GetComponent<Button>().colors;
             colors.pressedColor = new Color(0f, 0f, 1f, 0.34f);
             colors.selectedColor = new Color(0f, 0f, 1f, 0.34f);
-            ListJsonPlaneLocation_zero.flightButtons[indxButton].GetComponent<Button>().colors = colors;
+            ATC_Main.flightButtons[indxButton].GetComponent<Button>().colors = colors;
 
             Debug.Log("Aircraft original selection 4 ");
 
             previousButtonName = gameObject.name;
 
-            Debug.Log("Keep Aircraft clicked button tag: " + gameObject.tag + "Activated" + ListJsonPlaneLocation_zero.flightButtons[indxButton].name + " button tag " + ListJsonPlaneLocation_zero.flightButtons[indxPlane].tag);
+            Debug.Log("Keep Aircraft clicked button tag: " + gameObject.tag + "Activated" + ATC_Main.flightButtons[indxButton].name + " button tag " + ATC_Main.flightButtons[indxPlane].tag);
 
         }
         else if (indxPlane != -1 && indxButton != -1 && gameObject.tag != "Activated")  // highlight the correct button if the wrong one is clicked
@@ -89,13 +89,13 @@ public class ButtonPlaneInteraction : MonoBehaviour
 
             Debug.Log("Aircraft keep selection 1");
 
-            indxButton = ListJsonPlaneLocation_zero.flightButtons.FindIndex(button => button.tag == "Activated");
+            indxButton = ATC_Main.flightButtons.FindIndex(button => button.tag == "Activated");
 
             Debug.Log("Aircraft keep selection 2");
-            colors = ListJsonPlaneLocation_zero.flightButtons[indxButton].GetComponent<Button>().colors;
+            colors = ATC_Main.flightButtons[indxButton].GetComponent<Button>().colors;
             colors.pressedColor = Color.red;
             colors.selectedColor = Color.red;
-            ListJsonPlaneLocation_zero.flightButtons[indxButton].GetComponent<Button>().colors = colors;
+            ATC_Main.flightButtons[indxButton].GetComponent<Button>().colors = colors;
             Debug.Log("Aircraft keep selection 3");
 
             colors = gameObject.GetComponent<Button>().colors;
@@ -104,27 +104,27 @@ public class ButtonPlaneInteraction : MonoBehaviour
             gameObject.GetComponent<Button>().colors = colors;
             Debug.Log("Aircraft keep selection 4");
 
-            ListJsonPlaneLocation_zero.flightButtons[indxButton].GetComponent<Button>().Select();
+            ATC_Main.flightButtons[indxButton].GetComponent<Button>().Select();
 
-            Debug.Log("Keep Aircraft button name " + ListJsonPlaneLocation_zero.flightButtons[indxButton].name + " button tag " + ListJsonPlaneLocation_zero.flightButtons[indxPlane].tag);
+            Debug.Log("Keep Aircraft button name " + ATC_Main.flightButtons[indxButton].name + " button tag " + ATC_Main.flightButtons[indxPlane].tag);
 
         }
         else if (indxPlane != -1 && indxButton != -1 && gameObject.tag == "Activated") // Deselect the plane and return button to its default color
         {
-            ListJsonPlaneLocation_zero.planes[indxButton].gameObject.GetComponentsInChildren<Renderer>()[2].material = originalMat;
-            ListJsonPlaneLocation_zero.planes[indxButton].gameObject.GetComponentInChildren<TextMeshPro>().text = "";
-            ListJsonPlaneLocation_zero.planes[indxButton].gameObject.tag = "Untagged";
+            ATC_Main.planes[indxButton].gameObject.GetComponentsInChildren<Renderer>()[2].material = originalMat;
+            ATC_Main.planes[indxButton].gameObject.GetComponentInChildren<TextMeshPro>().text = "";
+            ATC_Main.planes[indxButton].gameObject.tag = "Untagged";
 
             gameObject.tag = "Untagged";
 
             //localButtons[indxPlane].gameObject.GetComponent<Button>().
-            var colors = ListJsonPlaneLocation_zero.flightButtons[indxPlane].GetComponent<Button>().colors;
+            var colors = ATC_Main.flightButtons[indxPlane].GetComponent<Button>().colors;
             colors.pressedColor = Color.white;
             colors.selectedColor = Color.white;
-            ListJsonPlaneLocation_zero.flightButtons[indxPlane].GetComponent<Button>().colors = colors;
+            ATC_Main.flightButtons[indxPlane].GetComponent<Button>().colors = colors;
 
             previousButtonName = "";
-            Debug.Log("Desactivate Aircraft  plane name " + ListJsonPlaneLocation_zero.planes[indxButton].name + " plane tag " + ListJsonPlaneLocation_zero.planes[indxPlane].gameObject.tag);
+            Debug.Log("Desactivate Aircraft  plane name " + ATC_Main.planes[indxButton].name + " plane tag " + ATC_Main.planes[indxPlane].gameObject.tag);
         }
         //else if ((indxPlane != -1 && indxButton == -1 && gameObject.tag == "Activated") || (indxPlane == -1 && indxButton != -1 && gameObject.tag == "Activated")) // reset everything
         //{

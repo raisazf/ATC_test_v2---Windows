@@ -37,7 +37,7 @@ public class OneHandButtonInteraction : MonoBehaviour
     public void Start()
     {
         //var planesMat = new List<Renderer>();
-        localPlanes = ListJsonPlaneLocation_zero.planes;
+        localPlanes = ATC_Main.planes;
         localPlaneIndex = localPlanes.Select(p => p.name).ToList();
         index = localPlaneIndex.IndexOf(gameObject.name);
 
@@ -51,7 +51,7 @@ public class OneHandButtonInteraction : MonoBehaviour
     {
 
 
-        localPlanes = ListJsonPlaneLocation_zero.planes;
+        localPlanes = ATC_Main.planes;
         localPlaneIndex = localPlanes.Select(p => p.name).ToList();
         index = localPlaneIndex.IndexOf(gameObject.name);
 

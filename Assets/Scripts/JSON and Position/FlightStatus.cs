@@ -26,8 +26,8 @@ public class FlightStatus : MonoBehaviour
     public void OnTriggerEnter(Collider other)
     {
 
-        int indxPlane = ListJsonPlaneLocation_zero.planes.FindIndex(plane => plane.tag == "Selected");
-        int indxButton = ListJsonPlaneLocation_zero.flightButtons.FindIndex(button => button.tag == "Activated");
+        int indxPlane = ATC_Main.planes.FindIndex(plane => plane.tag == "Selected");
+        int indxButton = ATC_Main.flightButtons.FindIndex(button => button.tag == "Activated");
 
         // select plane and button
         if (other.CompareTag("IndexFinger") && indxPlane == -1 && indxButton == -1 && gameObject.name != "PlaneHolderInside")
@@ -38,15 +38,15 @@ public class FlightStatus : MonoBehaviour
             gameObject.GetComponentInChildren<TextMeshPro>().text = gameObject.name; // display registration name
             gameObject.tag = "Selected";
 
-            indxPlane = ListJsonPlaneLocation_zero.planes.FindIndex(plane => plane.tag == "Selected");
+            indxPlane = ATC_Main.planes.FindIndex(plane => plane.tag == "Selected");
 
-            ListJsonPlaneLocation_zero.flightButtons[indxPlane].tag = "Activated";
-            //ListJsonPlaneLocation_zero.flightButtons[indxPlane].Select();
+            ATC_Main.flightButtons[indxPlane].tag = "Activated";
+            //ATC_Main.flightButtons[indxPlane].Select();
 
-            var colors = ListJsonPlaneLocation_zero.flightButtons[indxPlane].GetComponent<Button>().colors;
+            var colors = ATC_Main.flightButtons[indxPlane].GetComponent<Button>().colors;
             colors.pressedColor = new Color(0f, 0f, 1f, 0.34f);
             colors.selectedColor = new Color(0f, 0f, 1f, 0.34f);
-            ListJsonPlaneLocation_zero.flightButtons[indxPlane].GetComponent<Button>().colors = colors;
+            ATC_Main.flightButtons[indxPlane].GetComponent<Button>().colors = colors;
 
             previousPlaneName = gameObject.name;
 
@@ -54,21 +54,21 @@ public class FlightStatus : MonoBehaviour
         //Deselect plane and button
         else if (other.CompareTag("IndexFinger") && indxPlane != -1 && indxButton != -1 && gameObject.name == previousPlaneName)
         {
-            ListJsonPlaneLocation_zero.planes[indxPlane].GetComponentsInChildren<Renderer>()[2].material = originalMat;
-            ListJsonPlaneLocation_zero.planes[indxPlane].GetComponentInChildren<TextMeshPro>().text = "";
-            ListJsonPlaneLocation_zero.planes[indxPlane].tag = "Untagged";
+            ATC_Main.planes[indxPlane].GetComponentsInChildren<Renderer>()[2].material = originalMat;
+            ATC_Main.planes[indxPlane].GetComponentInChildren<TextMeshPro>().text = "";
+            ATC_Main.planes[indxPlane].tag = "Untagged";
 
-            ListJsonPlaneLocation_zero.flightButtons[indxButton].tag = "Untagged";
-            var colors = ListJsonPlaneLocation_zero.flightButtons[indxButton].GetComponent<Button>().colors;
+            ATC_Main.flightButtons[indxButton].tag = "Untagged";
+            var colors = ATC_Main.flightButtons[indxButton].GetComponent<Button>().colors;
             colors.pressedColor = Color.white;
             colors.selectedColor = Color.white;
-            ListJsonPlaneLocation_zero.flightButtons[indxButton].GetComponent<Button>().colors = colors;
+            ATC_Main.flightButtons[indxButton].GetComponent<Button>().colors = colors;
 
         }
         else if ((indxPlane != -1 && indxButton == -1 && gameObject.name != previousPlaneName) || (indxPlane == -1 && indxButton != -1 && gameObject.name != previousPlaneName))
         {
             // reset all planes
-            foreach (var plane in ListJsonPlaneLocation_zero.planes)
+            foreach (var plane in ATC_Main.planes)
             {
                 plane.gameObject.GetComponentsInChildren<Renderer>()[2].material = originalMat;
                 plane.gameObject.GetComponentInChildren<TextMeshPro>().text = "";
@@ -77,7 +77,7 @@ public class FlightStatus : MonoBehaviour
                 indxPlane = -1;
             }
             //reset all buttons
-            foreach (var button in ListJsonPlaneLocation_zero.flightButtons)
+            foreach (var button in ATC_Main.flightButtons)
             {
   
                 button.tag = "Untagged";

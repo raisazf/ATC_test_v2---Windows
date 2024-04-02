@@ -7533,7 +7533,7 @@ GameObject:
   - component: {fileID: 763413971}
   - component: {fileID: 763413972}
   m_Layer: 3
-  m_Name: PlaneHolderInside
+  m_Name: PlanePrefab
   m_TagString: Selected
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -14798,7 +14798,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1817815799}
   - component: {fileID: 1817815801}
-  - component: {fileID: 1817815800}
+  - component: {fileID: 1817815802}
   m_Layer: 0
   m_Name: API Data
   m_TagString: Untagged
@@ -14821,29 +14821,6 @@ Transform:
   m_Father: {fileID: 500949773}
   m_RootOrder: -1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1817815800
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1817815798}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 68530b1e3561e70449119fdf1749de5c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  GlobalSystem: {fileID: 500949764}
-  planePrefab: {fileID: 763413969}
-  flightButtonsTemplate: {fileID: 1913843836}
-  radiusAdjustment: 20.2
-  airportLatitude: 38.94846
-  airpotLongitude: -77.44057
-  haloMat: {fileID: 2100000, guid: 0703bd2dd24c545418c78bb8cda85a26, type: 2}
-  altitudeAdjustment: 1
-  positionAdjustment: 10
-  interval: 2000
-  transitionDuration: 20
 --- !u!114 &1817815801
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14856,6 +14833,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d868468ea30ef34f8fb4046b787e1ab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &1817815802
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1817815798}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84a8e3d841abfe346800b201d6132d0c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GlobalSystem: {fileID: 500949764}
+  planePrefab: {fileID: 763413969}
+  flightButtonsTemplate: {fileID: 1913843836}
+  radiusAdjustment: 21
+  airportLatitude: 38.94846
+  airpotLongitude: -77.44057
+  haloMat: {fileID: 2100000, guid: 0703bd2dd24c545418c78bb8cda85a26, type: 2}
+  altitudeAdjustment: 1
+  positionAdjustment: 5
+  interval: 600
+  transitionDuration: 20
 --- !u!1 &1828601335
 GameObject:
   m_ObjectHideFlags: 0
@@ -19528,7 +19528,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &7516989854938028349
 Transform:
   m_ObjectHideFlags: 0
