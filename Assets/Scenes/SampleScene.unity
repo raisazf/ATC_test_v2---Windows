@@ -7533,7 +7533,7 @@ GameObject:
   - component: {fileID: 763413971}
   - component: {fileID: 763413972}
   m_Layer: 3
-  m_Name: PlaneHolderInside
+  m_Name: PlanePrefab
   m_TagString: Selected
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -7548,7 +7548,7 @@ Transform:
   m_GameObject: {fileID: 763413969}
   m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: -0}
-  m_LocalScale: {x: 0.2, y: 0.2, z: 0.2}
+  m_LocalScale: {x: 0.03, y: 0.03, z: 0.03}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 295653906}
@@ -14841,10 +14841,11 @@ MonoBehaviour:
   airpotLongitude: -77.44057
   haloMat: {fileID: 2100000, guid: 0703bd2dd24c545418c78bb8cda85a26, type: 2}
   altitudeAdjustment: 1
-  positionAdjustment: 10
-  interval: 100
-  transitionDuration: 1
-  speed: 0.1
+  positionSpreadAdjustment: 1
+  travelDistanceAdjustment: 0.01
+  requestFlightResponsesMax: 2028
+  interval: 2
+  transitionDuration: 5
 --- !u!114 &1817815801
 MonoBehaviour:
   m_ObjectHideFlags: 0

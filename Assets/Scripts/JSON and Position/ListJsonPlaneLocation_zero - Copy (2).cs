@@ -18,7 +18,7 @@ using UnityEngine.UI;
 // The data file is stored in Assets/Resources on the local machine
 
 // Cou
-public class ListJsonPlaneLocation_zero : MonoBehaviour
+public class ListJsonPlaneLocation_zero_changingPrevious : MonoBehaviour
 {
 
     //[SerializeField] 
@@ -45,6 +45,7 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
     private List<string> flightNames;
     private List<string> flightNamesPrevious;
     private List<flights> requestFlightResponses;
+    private List<flights> requestFlightResponsesPrevious;
     List<string> names = new List<string>();
 
     //private int count = 0;
@@ -64,6 +65,7 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
         flightNamesPrevious = new List<string>();
         flightNames = new List<string>();
         requestFlightResponses = new List<flights>();
+        requestFlightResponsesPrevious = new List<flights>();
 
         cameraRig = FindObjectOfType<OVRCameraRig>();
 
@@ -113,14 +115,20 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
 
     private void CallPlanePosition()
     {
+        flights flightResponsePrevious = new flights();
+        flights flightResponse = new flights();
+
 
         //flightResponsePrevious = CopyFlights(requestFlightResponses[0]);
 
-        PlanePosition(requestFlightResponses[0], 0);
-
-        for (int responseIndex = 1; responseIndex < requestFlightResponsesMax; responseIndex++)
+        for (int responseIndex = 0; responseIndex < requestFlightResponsesMax; responseIndex++)
         {
-            PlanePosition(requestFlightResponses[responseIndex], responseIndex);
+            //Debug.Log("updating " + responseIndex);
+            flightResponse = requestFlightResponses[responseIndex];
+            flightResponsePrevious = requestFlightResponsesPrevious[responseIndex];
+            PlanePosition(flightResponse, flightResponsePrevious, responseIndex);
+            //flightResponsePrevious = CopyFlights(requestFlightResponses[responseIndex]);
+
         }
 
     }
@@ -150,7 +158,6 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
         nPosition[2] = (newRadius) * Mathf.Cos(flight.lat * Mathf.Deg2Rad) * Mathf.Sin(flight.lng * Mathf.Deg2Rad) + GlobalSystem.transform.position.z;
         nPosition[1] = (newRadius + altAdjustment) * Mathf.Sin((flight.lat) * Mathf.Deg2Rad) + GlobalSystem.transform.position.y;
         //Debug.Log(" XYZ position " + name + " = " + flight.reg_number + " position " + nPosition);
-        
 
 
         return nPosition;
@@ -238,7 +245,7 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
 
     }
 
-    public void PlanePosition(flights flightResponse, int responsIndex)
+    public void PlanePosition(flights flightResponse, flights flightResponsePreviousTT, int responsIndex)
     {
 
         float altAdjustment = 0;
@@ -257,25 +264,18 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
             current = false;
 
 
+
             flightNamesCurrent = requestFlightResponses[responsIndex].response.Select(a => a.reg_number).ToList(); // get the names of all flights in this response
             currentIndex = flightNamesCurrent.IndexOf(name); // get index of the current flight. -1 if not in this response
+            flightNamesPrevious = requestFlightResponsesPrevious[responsIndex].response.Select(a => a.reg_number).ToList(); // get the names of all flights in previous response
+            previousIndex = flightNamesPrevious.IndexOf(name); // get index of this flight in the previous response. -1 if not in previous response
 
-            if (responsIndex > 0)
-            {
-                flightNamesPrevious = requestFlightResponses[responsIndex - 1].response.Select(a => a.reg_number).ToList(); // get the names of all flights in previous response
-                previousIndex = flightNamesPrevious.IndexOf(name); // get index of this flight in the previous response. -1 if not in previous response
+            var result2 = string.Join("; ", requestFlightResponses[responsIndex].response.Select(a => a.lat).ToList());
+            Debug.Log(" Current name lat " + name + " for index "+ responsIndex +" lat " + result2);
+            result2 = string.Join("; ", requestFlightResponsesPrevious[responsIndex].response.Select(a => a.lat).ToList());
+            Debug.Log(" Previous name lat " + name + "  " + result2);
 
-                //var result2 = string.Join("; ", requestFlightResponses[responsIndex].response.Select(a => a.lat).ToList());
-                //Debug.Log(" Current name lat " + name + " for index " + responsIndex + " lat " + result2);
-                //result2 = string.Join("; ", requestFlightResponses[responsIndex - 1].response.Select(a => a.lat).ToList());
-                //Debug.Log(" Previous name lat " + name + "  " + result2);
-            }
-            else 
-            {
-                previousIndex = -1;
-            }
-
-            if (indeces[0] == responsIndex && !current && currentIndex != -1) // first response that contains this flight
+            if (indeces[0] == responsIndex && !current) // first response that contains this flight
             {
                 //Debug.Log(" PlanePositioning adding  " + name + " indeces (" + indeces[0] + ", " + indeces[1] + ") responsIndex " + responsIndex + " current Index " + currentIndex + " contains " + flightNames.Contains(name));
                 //var result2 = string.Join("; ", flightNames.Select(s => s));
@@ -315,19 +315,18 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
                     {
                         //Debug.Log(" Updating if prev does not exist " + name + " currentIndex " + currentIndex + " flightCurrent " + flightCurrent.reg_number);
                         previousIndex = currentIndex;
-                        flightPrevious = requestFlightResponses[responsIndex].response[currentIndex]; ;
+                        flightPrevious = flightCurrent;
                     }
                     else
                     {
-                        flightPrevious = requestFlightResponses[responsIndex-1].response[previousIndex];
+                        flightPrevious = requestFlightResponsesPrevious[responsIndex].response[previousIndex];
                         //Debug.Log(" Updating if prev does xists " + name + " previous " + previousIndex + " flightPrevious (" + requestFlightResponsesPrevious[responsIndex].response[previousIndex].lat + ", " + requestFlightResponsesPrevious[responsIndex].response[previousIndex].lng);
                     }
 
                     planeNames = planes.Select(a => a.name).ToList(); // get the names of all current planes
                     planeIndex = planeNames.IndexOf(name); // get the index of this plane 
 
-                    //Debug.Log(" PL name " + flightCurrent.reg_number + " = " + flightPrevious.reg_number + " previous (" + flightPrevious.lat + ", " + flightPrevious.lng + ") current (" + flightCurrent.lat + ", " + flightCurrent.lng + ")");
-                    UpdatePlanePosition(planeIndex, flightCurrent, flightPrevious, altAdjustment, responsIndex); // update position of the plane
+                    UpdatePlanePosition(planeIndex, flightCurrent, flightPrevious, altAdjustment); // update position of the plane
 
                 }
 
@@ -363,7 +362,7 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
         return altAdjustment;
     }
 
-    private IEnumerator TransitionCoroutine(Vector3 endPosition, Quaternion endRotation, float directon, int currentIndex)
+    private IEnumerator TransitionCoroutine(Vector3 startPosition, Vector3 endPosition, Quaternion startRotation, Quaternion endRotation, float directon, int currentIndex)
     {
 
         float elapsedTime = 0f;
@@ -384,7 +383,7 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
 
     }
 
-    private void UpdatePlanePosition(int currentIndex, FlightsEmbeddedField flightCurrent, FlightsEmbeddedField flightPrevious, float altAdjustment, int responseIndex)
+    private void UpdatePlanePosition(int currentIndex, FlightsEmbeddedField flightCurrent, FlightsEmbeddedField flightPrevious, float altAdjustment)
     {
         Vector3 startPosition;
         Quaternion startRotation;
@@ -409,18 +408,13 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
         //var result2 = string.Join("; ", flightNames.Select(s => s));
         //Debug.Log(" PlanePositioning adding name " + name + " to the list list " + result2);
 
-        //Debug.Log(" name " + flightCurrent.reg_number + " = " + flightPrevious.reg_number + " previous (" + flightPrevious.lat + ", " + flightPrevious.lng + ") current (" + flightCurrent.lat + ", " + flightCurrent.lng + ")");
-        //Debug.Log(" PlanePositioningUpdating index " + responseIndex + " name " + planes[currentIndex].name + " currentName "+ flightCurrent.reg_number + " prevName " + flightPrevious.reg_number + " start " + startPosition + " end " + endPosition);
-        //Debug.Log(" PlanePositioningUpdating before index " + responseIndex + " name " + planes[currentIndex].name + " position " + planes[currentIndex].transform.position.x + ", " + planes[currentIndex].transform.position.y + ", " + planes[currentIndex].transform.position.z + ") " );
-        
+        //Debug.Log(" PlanePositioningUpdating name " + planes[currentIndex].name + " current " + startPosition + " end " + endPosition);
         planes[currentIndex].transform.position = startPosition;
         planes[currentIndex].transform.rotation = startRotation;
 
-        StartCoroutine(TransitionCoroutine(endPosition, endRotation, -flightCurrent.dir, currentIndex));
+        StartCoroutine(TransitionCoroutine(startPosition, endPosition, startRotation, endRotation, -flightCurrent.dir, currentIndex));
 
-        planes[currentIndex].transform.position = endPosition;
-        planes[currentIndex].transform.rotation = endRotation;
-       // Debug.Log(" PlanePositioningUpdating after index " + responseIndex + " name " + planes[currentIndex].name + " position " + planes[currentIndex].transform.position.x + ", " + planes[currentIndex].transform.position.y + ", " + planes[currentIndex].transform.position.z + ") ");
+
         // plane is perpendicular to surface normal
         planes[currentIndex].transform.LookAt(new Vector3(GlobalSystem.transform.position.x, GlobalSystem.transform.position.y, GlobalSystem.transform.position.z));
 
@@ -493,10 +487,6 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
     {
         List<int> requestNumbers = new List<int>();
         flights flightResponsePrevious = new flights();
-        List<flights> requestFlightResponsesPrevious = new List<flights>();
-        //List<flights> requestFlightResponsesCurrent = new List<flights>();
-
-
         string jsonString;
         int indxPrevious, start, end, indx;
         float dx, dy;
@@ -558,11 +548,10 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
                 }
             }
             requestFlightResponses.Add(flightResponse);
-            requestFlightResponsesPrevious.Add(JsonConvert.DeserializeObject<flights>(jsonString[start..end]));
+
 
         }
 
-        //requestFlightResponsesPrevious = DeepCopy(requestFlightResponsesCurrent);
 
 
         for (int i = 0; i < requestFlightResponses.Count - 1; i++)
@@ -604,9 +593,7 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
         }
 
         ////////////////////////////
-
-        float temp;
-        int indxLat=1, indxLng=1;
+        int responseIndexPrevious = 0;
         for (int i = 0; i < requestFlightResponsesMax; i++)
         {
             first = true;
@@ -615,117 +602,92 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
 
             foreach (string name in names)
             {
+                if (i == 0)
+                {
+                    requestFlightResponsesPrevious.Add(requestFlightResponses[0]);
+                    //Debug.Log(" request count " + requestFlightResponses.Count + " prev " + requestFlightResponsesPrevious.Count);
+                }
+
+                if (i > 0)
+                {
+                    responseIndexPrevious = i - 1;
+                    flightsInRequest = requestFlightResponsesPrevious[responseIndexPrevious].response.Select(flt => flt.reg_number).ToList();
+                    indxPrevious = flightsInRequest.FindIndex(a => a.Contains(name));
+                }
+                else 
+                {
+                    responseIndexPrevious = 0;
+                    indxPrevious = -1;
+                }
 
                 flightsInRequest = requestFlightResponses[i].response.Select(flt => flt.reg_number).ToList();
                 indx = flightsInRequest.FindIndex(a => a.Contains(name));
+                dx = 0f;
+                dy = 0f;
+
+                //Debug.Log(" All indeces: indx " + indx + " prev " + indxPrevious + " response prev " + responseIndexPrevious + " i " + i);
+                //if (indx != -1 && indxPrevious != -1 && requestFlightResponsesPrevious.Count >= 0)
+                //{
+                //    Debug.Log(" JSON before name " + requestFlightResponses[i].response[indx].reg_number + " previous (" + requestFlightResponsesPrevious[responseIndexPrevious].response[indxPrevious].lat +
+                //                        ", " + requestFlightResponsesPrevious[responseIndexPrevious].response[indxPrevious].lng + ") current (" + requestFlightResponses[i].response[indx].lat + ", " + requestFlightResponses[i].response[indx].lng + ")");
+                //}
                 
                 if (indx != -1)
                 {
-                    if (i > 0)
-                    {
-                        flightsInRequest = requestFlightResponsesPrevious[i - 1].response.Select(flt => flt.reg_number).ToList();
-                        indxPrevious = flightsInRequest.FindIndex(a => a.Contains(name));
-                    }
-                    else
-                    {
-                        indxPrevious = -1;
-                    }
+                    //flightsInRequest = requestFlightResponsesPrevious[responseIndexPrevious].response.Select(flt => flt.reg_number).ToList();
+                    //indxPrevious = flightsInRequest.FindIndex(a => a.Contains(name));
 
                     //if (i < flightDuration[1] + 1)
                     //{
                     if (indxPrevious != -1)
                     {
-                        dx = requestFlightResponses[i].response[indx].lat - requestFlightResponsesPrevious[i-1].response[indxPrevious].lat;
-                        dy = requestFlightResponses[i].response[indx].lng - requestFlightResponsesPrevious[i-1].response[indxPrevious].lng;
-                        //Debug.Log("name " + name + "currReq length " + requestFlightResponses.Count + " prev count " + requestFlightResponsesPrevious.Count);
-                        //Debug.Log(" JSON name " + name + " mid " + (-listDictionary[name][2] + i) + " response " + i + " currIndx " + indx + " indxPrev " + indxPrevious + " dx " + dx + " current " + requestFlightResponses[i].response[indx].lat + " prev " + requestFlightResponsesPrevious[i-1].response[indxPrevious].lat);
+                        dx = requestFlightResponses[i].response[indx].lat - requestFlightResponsesPrevious[responseIndexPrevious].response[indxPrevious].lat;
+                        dy = requestFlightResponses[i].response[indx].lng - requestFlightResponsesPrevious[responseIndexPrevious].response[indxPrevious].lng;
+
                     }
-                    else 
+
+                    positionResamplingLat = (-listDictionary[name][2] + i) * positionSpreadAdjustment;
+                    positionResamplingLng = (-listDictionary[name][2] + i) *positionSpreadAdjustment;
+
+                    //Debug.Log("for name " + requestFlightResponses[i].response[indx].reg_number + " adjustment " + travelDistanceAdjustment * positionResamplingLat);
+                    if (dx <= 0)
                     {
-                        dx = 0f;
-                        dy = 0f;
+                        requestFlightResponses[i].response[indx].lat = requestFlightResponses[i].response[indx].lat + travelDistanceAdjustment * positionResamplingLat;
                     }
-
-                    positionResamplingLat = (-listDictionary[name][2] + i) * travelDistanceAdjustment;
-                    positionResamplingLng = (-listDictionary[name][2] + i) * travelDistanceAdjustment;
-
-                    if (indx == (int)listDictionary[name][2])
+                    else
                     {
-                        positionResamplingLat = 0;
-                        positionResamplingLng = 0;
+                        requestFlightResponses[i].response[indx].lat = requestFlightResponses[i].response[indx].lat - travelDistanceAdjustment * positionResamplingLat;
                     }
 
-                    Debug.Log("for name " + requestFlightResponses[i].response[indx].reg_number + " adjustment " + travelDistanceAdjustment * positionResamplingLat + " dx and dy " + dx + ", " + dy);
-                    if (dx < 0)
+                    if (dy <= 0)
                     {
-                        indxLat = -1;
-                        temp = requestFlightResponses[i].response[indx].lat;
-                        requestFlightResponses[i].response[indx].lat = temp - positionResamplingLat;
-
+                        requestFlightResponses[i].response[indx].lng = requestFlightResponses[i].response[indx].lng + travelDistanceAdjustment * positionResamplingLng;
                     }
-                    else if (dx > 0)
+                    else
                     {
-                        indxLat = 1;
-                        temp = requestFlightResponses[i].response[indx].lat;
-                        //Debug.Log(" JSON name " + name + " dx " + dx + " dy" + dy+    " indexPrev " + indxPrevious + " factor " + positionResamplingLat + " before (" + requestFlightResponses[i].response[indx].lat + ", " + requestFlightResponses[i].response[indx].lng + ")");
-                        requestFlightResponses[i].response[indx].lat = temp + positionResamplingLat;
+                        requestFlightResponses[i].response[indx].lng = requestFlightResponses[i].response[indx].lng - travelDistanceAdjustment * positionResamplingLng;
                     }
-                    else 
-                    {
-                        temp = requestFlightResponses[i].response[indx].lat;
-                        requestFlightResponses[i].response[indx].lat = temp + indxLat * positionResamplingLat;
-                    }
-
-
-                    if (dy < 0)
-                    {
-                        indxLng = 1;
-                        temp = requestFlightResponses[i].response[indx].lng;
-                        requestFlightResponses[i].response[indx].lng = temp + positionResamplingLng;
-                    }
-                    else if (dy > 0)
-                    {
-                        indxLng = -1;
-
-                        temp = requestFlightResponses[i].response[indx].lng;
-                        requestFlightResponses[i].response[indx].lng = temp - positionResamplingLng;
-                    }
-                    else 
-                    {
-                        temp = requestFlightResponses[i].response[indx].lng;
-                        requestFlightResponses[i].response[indx].lng = temp + indxLng *positionResamplingLng;
-                    }
-
-                    //Debug.Log(" JSON name " + name + " dx " + dx + " indexPrev " + indxPrevious   + " factor " + positionResamplingLat +  " rescaled (" + requestFlightResponses[i].response[indx].lat + ", " + requestFlightResponses[i].response[indx].lng + ")");
-                    //var result2 = string.Join("; ", requestFlightResponses[i].response.Select(s => s.lat));
-                    //Debug.Log(" JSON name " + name + " lat " + result2);
-                    //result2 = string.Join("; ", requestFlightResponses[i].response.Select(s => s.lng));
-
                     //}
                 }
+                if (i == 0)
+                {
+                    requestFlightResponsesPrevious.Clear();
+                }
+                else
+                {
+                    requestFlightResponsesPrevious.Add(requestFlightResponses[i]);
+                }
             }
-            //requestFlightResponses = DeepCopy()
+            //Debug.Log(" JSON after name " + requestFlightResponses[i].response[0].reg_number + " prev length " + requestFlightResponsesPrevious.Count + " " + " previous (" + requestFlightResponsesPrevious[responseIndexPrevious].response[0].lat +
+            //", " + requestFlightResponsesPrevious[responseIndexPrevious].response[0].lng + ") current (" + requestFlightResponses[i].response[0].lat + ", " + requestFlightResponses[i].response[0].lng + ")");
         }
-       // requestFlightResponses = DeepCopy(requestFlightResponsesCurrent);
     }
 
-
-    public List<flights> DeepCopy(List<flights> requestFlightResponsesCurrent)
+    private void GeneratePreviousResponse(flights responseCurrent)
     {
-        List<flights> requestFlightResponsesTemp = new List<flights>(); // Create a new list to store copied elements
-        
-        for (int i = 1; i < requestFlightResponsesCurrent.Count - 1; i++)
-        {
-                requestFlightResponsesTemp.Add(requestFlightResponsesCurrent.ElementAt(i)); // Add each element to the new list
-        }
-        return requestFlightResponsesTemp; // Return the new list
+
+        List<flights> responsePrevioius = new List<flights>();
+        //flightsPrevioius.response = new List<FlightsEmbeddedField>();
+        requestFlightResponsesPrevious.Add(responseCurrent);
     }
-
-    //private void GeneratePreviousResponse(flights responseCurrent)
-    //{
-
-    //    List<flights> responsePrevioius = new List<flights>();
-    //    //flightsPrevioius.response = new List<FlightsEmbeddedField>();
-    //    requestFlightResponsesPrevious.Add(responseCurrent);
-    //}
 }
