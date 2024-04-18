@@ -26,6 +26,7 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
     [SerializeField] private GameObject GlobalSystem;
     [SerializeField] private GameObject planePrefab;
     [SerializeField] private GameObject flightButtonsTemplate;
+    [SerializeField] private GameObject tt;
 
     [SerializeField] private float radiusAdjustment = 1; // globe ball radius (unity units 1m)
     [SerializeField] private float airportLatitude = 38.94846f;
@@ -50,14 +51,21 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
     //private int count = 0;
     public float interval = 600f;
     private float time = 0.0f;
-    public float transitionDuration = 1f;
+    public float speed = 1f;
 
     private Dictionary<string, int[]> listDictionary = new Dictionary<string, int[]>();
 
     private Vector3 cameraPosition;
     private OVRCameraRig cameraRig;
+
+    private FlightsEmbeddedField testTower = new FlightsEmbeddedField();
+
+    private Vector3 stPosition;
+    float move; 
     void Start()
     {
+
+        
 
         planes = new List<GameObject>();
         flightButtons = new List<GameObject>();
@@ -65,20 +73,62 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
         flightNames = new List<string>();
         requestFlightResponses = new List<flights>();
 
+        testTower.lat = 29.30463f;
+        testTower.lng = -85.0936f;
+
+        Vector3 tower  = GetXYZPositions(testTower, 0f);
+        Quaternion rot = Quaternion.Euler(0f, -(90f - GlobalSystem.transform.rotation.eulerAngles.y), 0f); // adjust plane location to GlobalSystem rotation
+        tower = GlobalSystem.transform.position + rot * (tower - GlobalSystem.transform.position);
+        rot = rot * Quaternion.Euler(0f, 0f, 0f);
+        tt.transform.position = tower;
+
+        Debug.Log("Tower " + tt.transform.position);
         cameraRig = FindObjectOfType<OVRCameraRig>();
+
+        testTower.lat = 29.30463f;
+        testTower.lng = -85.0936f;
+
+        stPosition = GetXYZPositions(testTower, 0f);
+        Quaternion rt = Quaternion.Euler(0f, -(90f - GlobalSystem.transform.rotation.eulerAngles.y), 0f); // adjust plane location to GlobalSystem rotation
+        stPosition = GlobalSystem.transform.position + rt * (stPosition - GlobalSystem.transform.position);
+
+        tt.transform.position = stPosition;
 
         ReadJson();
 
     }
 
-    public void Update()
+    private IEnumerator TransitionCoroutineSphere(Vector3 endPosition, Vector3 startPosition, GameObject sphere)
     {
-        float radius = radiusAdjustment * GlobalSystem.transform.localScale.x;
-        GameObject menuPanel = GameObject.Find("MenuPanel");
-        //GameObject lookAtGlobal = GameObject.Find("LookAt");
-        Vector3 cameraPosition = cameraRig.centerEyeAnchor.transform.position;
-        menuPanel.transform.LookAt(cameraPosition);
-        //lookAtGlobal.transform.LookAt(cameraPosition);
+
+        float elapsedTime = 0f;
+        sphere.transform.position = startPosition;
+
+        while (elapsedTime < speed)
+        {
+
+            sphere.transform.position = Vector3.Lerp(startPosition, endPosition, (elapsedTime / speed));
+
+            elapsedTime += Time.deltaTime;
+
+            yield return null;
+        }
+    }
+
+        public void Update()
+    {
+
+        
+
+        testTower.lat = 48.97083f;
+        testTower.lng = -65.33284f;
+        Vector3 enPosition = GetXYZPositions(testTower, 0f);
+        Quaternion rt = Quaternion.Euler(0f, -(90f - GlobalSystem.transform.rotation.eulerAngles.y), 0f); // adjust plane location to GlobalSystem rotation
+        enPosition = GlobalSystem.transform.position + rt * (enPosition - GlobalSystem.transform.position);
+
+        move = speed * Time.deltaTime;
+        tt.transform.position = Vector3.MoveTowards(tt.transform.position, enPosition, move);
+
 
         time += Time.deltaTime;
 
@@ -368,12 +418,12 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
 
         float elapsedTime = 0f;
 
-        while (elapsedTime < transitionDuration)
+        while (elapsedTime < speed)
         {
             if (currentIndex < 0 || currentIndex > planes.Count - 1) yield break;
 
-            planes[currentIndex].transform.position = Vector3.Lerp(planes[currentIndex].transform.position, endPosition, (elapsedTime / transitionDuration));
-            planes[currentIndex].transform.rotation = Quaternion.Lerp(planes[currentIndex].transform.rotation, endRotation, elapsedTime / transitionDuration);
+            planes[currentIndex].transform.position = Vector3.Lerp(planes[currentIndex].transform.position, endPosition, (elapsedTime / speed));
+            planes[currentIndex].transform.rotation = Quaternion.Lerp(planes[currentIndex].transform.rotation, endRotation, elapsedTime / speed);
             planes[currentIndex].transform.LookAt(new Vector3(GlobalSystem.transform.position.x, GlobalSystem.transform.position.y, GlobalSystem.transform.position.z));
             planes[currentIndex].transform.Rotate(0f, 0f, directon, Space.Self);
 
@@ -401,10 +451,10 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
         endRotation = rotation * Quaternion.Euler(0f, -flightCurrent.dir, 0f);
 
 
-        startPosition = GetXYZPositions(flightPrevious, altAdjustment);
-        rotation = Quaternion.Euler(0f, -(90f - GlobalSystem.transform.rotation.eulerAngles.y), 0f); // adjust plane location to GlobalSystem rotation
-        startPosition = GlobalSystem.transform.position + rotation * (startPosition - GlobalSystem.transform.position);
-        startRotation = rotation * Quaternion.Euler(0f, -flightPrevious.dir, 0f);
+        //startPosition = GetXYZPositions(flightPrevious, altAdjustment);
+        //rotation = Quaternion.Euler(0f, -(90f - GlobalSystem.transform.rotation.eulerAngles.y), 0f); // adjust plane location to GlobalSystem rotation
+        //startPosition = GlobalSystem.transform.position + rotation * (startPosition - GlobalSystem.transform.position);
+        //startRotation = rotation * Quaternion.Euler(0f, -flightPrevious.dir, 0f);
 
         //var result2 = string.Join("; ", flightNames.Select(s => s));
         //Debug.Log(" PlanePositioning adding name " + name + " to the list list " + result2);
@@ -412,18 +462,25 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
         //Debug.Log(" name " + flightCurrent.reg_number + " = " + flightPrevious.reg_number + " previous (" + flightPrevious.lat + ", " + flightPrevious.lng + ") current (" + flightCurrent.lat + ", " + flightCurrent.lng + ")");
         //Debug.Log(" PlanePositioningUpdating index " + responseIndex + " name " + planes[currentIndex].name + " currentName "+ flightCurrent.reg_number + " prevName " + flightPrevious.reg_number + " start " + startPosition + " end " + endPosition);
         //Debug.Log(" PlanePositioningUpdating before index " + responseIndex + " name " + planes[currentIndex].name + " position " + planes[currentIndex].transform.position.x + ", " + planes[currentIndex].transform.position.y + ", " + planes[currentIndex].transform.position.z + ") " );
-        
-        planes[currentIndex].transform.position = startPosition;
-        planes[currentIndex].transform.rotation = startRotation;
 
-        StartCoroutine(TransitionCoroutine(endPosition, endRotation, -flightCurrent.dir, currentIndex));
+        //planes[currentIndex].transform.position = startPosition;
+        //planes[currentIndex].transform.rotation = startRotation;
 
-        planes[currentIndex].transform.position = endPosition;
-        planes[currentIndex].transform.rotation = endRotation;
+        //StartCoroutine(TransitionCoroutine(endPosition, endRotation, -flightCurrent.dir, currentIndex));
+
+        planes[currentIndex].transform.position = Vector3.MoveTowards(planes[currentIndex].transform.position, endPosition, move);
+        //planes[currentIndex].transform.position = endPosition;
+        //planes[currentIndex].transform.rotation = endRotation;
        // Debug.Log(" PlanePositioningUpdating after index " + responseIndex + " name " + planes[currentIndex].name + " position " + planes[currentIndex].transform.position.x + ", " + planes[currentIndex].transform.position.y + ", " + planes[currentIndex].transform.position.z + ") ");
         // plane is perpendicular to surface normal
         planes[currentIndex].transform.LookAt(new Vector3(GlobalSystem.transform.position.x, GlobalSystem.transform.position.y, GlobalSystem.transform.position.z));
 
+        //string tt = "(" + flightCurrent.lat + ", " + flightCurrent.lng + ")";
+        string tt = "(" + planes[currentIndex].transform.position + ")";
+        //planes[currentIndex].gameObject.GetComponentInChildren<TextMeshPro>().text = tt;
+       
+        //Debug.Log("name " + planes[currentIndex].name + " (" + flightCurrent.lat + ", " + flightCurrent.lng + ")");
+        Debug.Log("name " + planes[currentIndex].name + " " + responseIndex +  " (" + planes[currentIndex].transform.position + ")" + " (" + flightCurrent.lat + ", " + flightCurrent.lng + ")");
         if (flightCurrent.arr_iata == "IAD")
         {
             planes[currentIndex].gameObject.GetComponentsInChildren<Renderer>()[2].material = haloMat; // highlight with a different material
@@ -492,14 +549,9 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
     public void ReadJson()
     {
         List<int> requestNumbers = new List<int>();
-        flights flightResponsePrevious = new flights();
-        List<flights> requestFlightResponsesPrevious = new List<flights>();
-        //List<flights> requestFlightResponsesCurrent = new List<flights>();
-
 
         string jsonString;
-        int indxPrevious, start, end, indx;
-        float dx, dy;
+        int start, end, indx;
         int[] indices = new int[3];
 
         // During the first build and run, the app won't load planes and buttons. After the first build an run, place the data file here:
@@ -558,7 +610,6 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
                 }
             }
             requestFlightResponses.Add(flightResponse);
-            requestFlightResponsesPrevious.Add(JsonConvert.DeserializeObject<flights>(jsonString[start..end]));
 
         }
 
@@ -605,13 +656,9 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
 
         ////////////////////////////
 
-        float temp;
-        int indxLat=1, indxLng=1;
         for (int i = 0; i < requestFlightResponsesMax; i++)
         {
-            first = true;
             indices = new int[] { 0, 0 };
-            
 
             foreach (string name in names)
             {
@@ -621,31 +668,6 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
                 
                 if (indx != -1)
                 {
-                    if (i > 0)
-                    {
-                        flightsInRequest = requestFlightResponsesPrevious[i - 1].response.Select(flt => flt.reg_number).ToList();
-                        indxPrevious = flightsInRequest.FindIndex(a => a.Contains(name));
-                    }
-                    else
-                    {
-                        indxPrevious = -1;
-                    }
-
-                    //if (i < flightDuration[1] + 1)
-                    //{
-                    if (indxPrevious != -1)
-                    {
-                        dx = requestFlightResponses[i].response[indx].lat - requestFlightResponsesPrevious[i-1].response[indxPrevious].lat;
-                        dy = requestFlightResponses[i].response[indx].lng - requestFlightResponsesPrevious[i-1].response[indxPrevious].lng;
-                        //Debug.Log("name " + name + "currReq length " + requestFlightResponses.Count + " prev count " + requestFlightResponsesPrevious.Count);
-                        //Debug.Log(" JSON name " + name + " mid " + (-listDictionary[name][2] + i) + " response " + i + " currIndx " + indx + " indxPrev " + indxPrevious + " dx " + dx + " current " + requestFlightResponses[i].response[indx].lat + " prev " + requestFlightResponsesPrevious[i-1].response[indxPrevious].lat);
-                    }
-                    else 
-                    {
-                        dx = 0f;
-                        dy = 0f;
-                    }
-
                     positionResamplingLat = (-listDictionary[name][2] + i) * travelDistanceAdjustment;
                     positionResamplingLng = (-listDictionary[name][2] + i) * travelDistanceAdjustment;
 
@@ -655,45 +677,25 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
                         positionResamplingLng = 0;
                     }
 
-                    Debug.Log("for name " + requestFlightResponses[i].response[indx].reg_number + " adjustment " + travelDistanceAdjustment * positionResamplingLat + " dx and dy " + dx + ", " + dy);
-                    if (dx < 0)
+                    if (requestFlightResponses[i].response[indx].dir > 0 && requestFlightResponses[i].response[indx].dir <- 90)
                     {
-                        indxLat = -1;
-                        temp = requestFlightResponses[i].response[indx].lat;
-                        requestFlightResponses[i].response[indx].lat = temp - positionResamplingLat;
-
+                        requestFlightResponses[i].response[indx].lat = requestFlightResponses[i].response[indx].lat - positionResamplingLat;
+                        requestFlightResponses[i].response[indx].lng = requestFlightResponses[i].response[indx].lng - positionResamplingLng;
                     }
-                    else if (dx > 0)
+                    else if (requestFlightResponses[i].response[indx].dir > 90 && requestFlightResponses[i].response[indx].dir <= 180)
                     {
-                        indxLat = 1;
-                        temp = requestFlightResponses[i].response[indx].lat;
-                        //Debug.Log(" JSON name " + name + " dx " + dx + " dy" + dy+    " indexPrev " + indxPrevious + " factor " + positionResamplingLat + " before (" + requestFlightResponses[i].response[indx].lat + ", " + requestFlightResponses[i].response[indx].lng + ")");
-                        requestFlightResponses[i].response[indx].lat = temp + positionResamplingLat;
+                        requestFlightResponses[i].response[indx].lat = requestFlightResponses[i].response[indx].lat + positionResamplingLat;
+                        requestFlightResponses[i].response[indx].lng = requestFlightResponses[i].response[indx].lng - positionResamplingLng;
                     }
-                    else 
+                    else if (requestFlightResponses[i].response[indx].dir > 180 && requestFlightResponses[i].response[indx].dir <= 270)
                     {
-                        temp = requestFlightResponses[i].response[indx].lat;
-                        requestFlightResponses[i].response[indx].lat = temp + indxLat * positionResamplingLat;
+                        requestFlightResponses[i].response[indx].lat = requestFlightResponses[i].response[indx].lat + positionResamplingLat;
+                        requestFlightResponses[i].response[indx].lng = requestFlightResponses[i].response[indx].lng + positionResamplingLng;
                     }
-
-
-                    if (dy < 0)
+                    else if (requestFlightResponses[i].response[indx].dir > 270 && requestFlightResponses[i].response[indx].dir <= 360)
                     {
-                        indxLng = 1;
-                        temp = requestFlightResponses[i].response[indx].lng;
-                        requestFlightResponses[i].response[indx].lng = temp + positionResamplingLng;
-                    }
-                    else if (dy > 0)
-                    {
-                        indxLng = -1;
-
-                        temp = requestFlightResponses[i].response[indx].lng;
-                        requestFlightResponses[i].response[indx].lng = temp - positionResamplingLng;
-                    }
-                    else 
-                    {
-                        temp = requestFlightResponses[i].response[indx].lng;
-                        requestFlightResponses[i].response[indx].lng = temp + indxLng *positionResamplingLng;
+                        requestFlightResponses[i].response[indx].lat = requestFlightResponses[i].response[indx].lat - positionResamplingLat ;
+                        requestFlightResponses[i].response[indx].lng = requestFlightResponses[i].response[indx].lng + positionResamplingLng;
                     }
 
                     //Debug.Log(" JSON name " + name + " dx " + dx + " indexPrev " + indxPrevious   + " factor " + positionResamplingLat +  " rescaled (" + requestFlightResponses[i].response[indx].lat + ", " + requestFlightResponses[i].response[indx].lng + ")");
@@ -704,9 +706,7 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
                     //}
                 }
             }
-            //requestFlightResponses = DeepCopy()
         }
-       // requestFlightResponses = DeepCopy(requestFlightResponsesCurrent);
     }
 
 

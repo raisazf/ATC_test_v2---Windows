@@ -299,19 +299,6 @@ public class ListJsonPlaneLocation_zero_Copy : MonoBehaviour
 
         flightNamesPrevious = flightNames;
 
-        //Debug.Log("Response index " + responseIndex);
-        //string result = string.Join(", ", planesPreviousLocation.Select(s => $"{s.transform.position}"));
-        //Debug.Log(" END PREVIOUS positions " + result);
-        //result = string.Join(", ", planes.Select(s => $"{s.transform.position}"));
-        //Debug.Log(" END  CURRENT positions " + result);
-        // planePreviousLocation is not saving current planes location to be used in TransitionCoroutine (see below) as a startPosition
-        // TransitionCoroutine is called from UpdatePlanePosition between %%%%%%%%%%%%%
-        //planesPreviousLocation = new List<GameObject>(planes);
-        //planesPreviousLocation = new List<GameObject>(planes.ToList());
-        planesPreviousLocation = new List<GameObject>(planes.Select(x => x));
-        planesPreviousPosition = planes.Select(s => s.transform.position).ToArray();
-        //result = string.Join(", ", planesPreviousLocation.Select(s => $"{s.transform.position}"));
-        //Debug.Log(" UPDATED PREVIOUS positions " + result);
         //SaveFlightInfo(flightNames, flightNames.Count);
 
     }
