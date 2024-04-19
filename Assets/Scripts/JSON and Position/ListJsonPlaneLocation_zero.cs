@@ -148,9 +148,11 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
 
         planes[flightNames.Count - 1].transform.LookAt(new Vector3(GlobalSystem.transform.position.x, GlobalSystem.transform.position.y, GlobalSystem.transform.position.z));
 
-        if (flight.alt <= 1500f)
+        if (flight.alt <90f)
         {
-            planes[flightNames.Count - 1].transform.rotation = Quaternion.identity;
+            planes[flightNames.Count - 1].transform.eulerAngles = new Vector3(planes[flightNames.Count - 1].transform.rotation.x, planes[flightNames.Count - 1].transform.rotation.y, 0f);
+            planes[flightNames.Count - 1].transform.LookAt(new Vector3(GlobalSystem.transform.position.x, GlobalSystem.transform.position.y, GlobalSystem.transform.position.z));
+            planes[flightNames.Count - 1].transform.localScale = Vector3.Lerp(planes[flightNames.Count - 1].transform.localScale, planes[flightNames.Count - 1].transform.localScale / 1.5f, move);
         }
         else
         {
@@ -186,6 +188,7 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
     {
 
         Vector3 endPosition;
+        Quaternion endRotation;
         Quaternion rotation;
 
         endPosition = GetXYZPositions(flightCurrent, flightAltitudeAjustment);
@@ -195,6 +198,10 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
         planes[currentIndex].transform.position = Vector3.MoveTowards(planes[currentIndex].transform.position, endPosition, move);
 
         planes[currentIndex].transform.LookAt(new Vector3(GlobalSystem.transform.position.x, GlobalSystem.transform.position.y, GlobalSystem.transform.position.z));
+
+        Quaternion targetRotation = Quaternion.LookRotation(endPosition - planes[currentIndex].transform.position);
+        endRotation = Quaternion.Euler(0, 0, -90) * targetRotation;
+        planes[currentIndex].transform.rotation = Quaternion.Lerp(planes[currentIndex].transform.rotation, endRotation, move);
 
         if (moveForward)
         {
@@ -209,7 +216,7 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
         {
             planes[currentIndex].transform.eulerAngles = new Vector3(planes[currentIndex].transform.rotation.x, planes[currentIndex].transform.rotation.y, 0f);
             planes[currentIndex].transform.LookAt(new Vector3(GlobalSystem.transform.position.x, GlobalSystem.transform.position.y, GlobalSystem.transform.position.z));
-            planes[currentIndex].transform.localScale = Vector3.Lerp(planes[currentIndex].transform.localScale, planes[currentIndex].transform.localScale/2f, move);
+            planes[currentIndex].transform.localScale = Vector3.Lerp(planes[currentIndex].transform.localScale, planes[currentIndex].transform.localScale/1.5f, move);
         }
 
         if (flightCurrent.arr_iata == "IAD")
