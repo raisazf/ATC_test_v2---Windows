@@ -107,13 +107,13 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
     }
 
     // Converts lat and lng from Json file to (x, y, z) position in Unity
-    private Vector3 GetXYZPositions(FlightsEmbeddedField flight)
+    private Vector3 GetXYZPositions(FlightsEmbeddedField flight, float flightAltitudeAjustment)
     {
         Vector3 nPosition = new Vector3();
         float newRadius;
         float radius = radiusAdjustment * GlobalSystem.transform.localScale.x;
 
-        newRadius = (float)((float)(6.3781e6 + flight.alt) * radius / 6.3781e6);
+        newRadius = (float)((float)(6.3781e6 + flightAltitudeAjustment) * radius / 6.3781e6);
         nPosition[0] = (newRadius) * Mathf.Cos(flight.lat * Mathf.Deg2Rad) * Mathf.Cos(flight.lng * Mathf.Deg2Rad) + GlobalSystem.transform.position.x;
         nPosition[2] = (newRadius) * Mathf.Cos(flight.lat * Mathf.Deg2Rad) * Mathf.Sin(flight.lng * Mathf.Deg2Rad) + GlobalSystem.transform.position.z;
         nPosition[1] = newRadius * Mathf.Sin((flight.lat) * Mathf.Deg2Rad) + GlobalSystem.transform.position.y;
@@ -122,7 +122,7 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
     }
 
     // If flight just entered zone of interest, add it to the list of active flights
-    public void AddFlight(FlightsEmbeddedField flight, float altAdjustment)
+    public void AddFlight(FlightsEmbeddedField flight, float flightAltitudeAjustment)
     {
 
         Vector3 newPosition;
@@ -132,7 +132,7 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
 
         flightNames.Add(flight.reg_number);
 
-        newPosition = GetXYZPositions(flight);
+        newPosition = GetXYZPositions(flight, flightAltitudeAjustment);
 
         newRotation = Quaternion.Euler(0f, -(90f - GlobalSystem.transform.rotation.eulerAngles.y), 0f);
         newPosition = GlobalSystem.transform.position + newRotation * (newPosition - GlobalSystem.transform.position);
@@ -148,7 +148,7 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
 
         planes[flightNames.Count - 1].transform.LookAt(new Vector3(GlobalSystem.transform.position.x, GlobalSystem.transform.position.y, GlobalSystem.transform.position.z));
 
-        if (flight.alt <= 90f)
+        if (flight.alt <= 1500f)
         {
             planes[flightNames.Count - 1].transform.rotation = Quaternion.identity;
         }
@@ -182,6 +182,48 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
 
     }
 
+    private void UpdatePlanePosition(int currentIndex, FlightsEmbeddedField flightCurrent, float flightAltitudeAjustment)
+    {
+
+        Vector3 endPosition;
+        Quaternion rotation;
+
+        endPosition = GetXYZPositions(flightCurrent, flightAltitudeAjustment);
+        rotation = Quaternion.Euler(0f, -(90f - GlobalSystem.transform.rotation.eulerAngles.y), 0f); // adjust plane location to GlobalSystem rotation
+        endPosition = GlobalSystem.transform.position + rotation * (endPosition - GlobalSystem.transform.position);
+
+        planes[currentIndex].transform.position = Vector3.MoveTowards(planes[currentIndex].transform.position, endPosition, move);
+
+        planes[currentIndex].transform.LookAt(new Vector3(GlobalSystem.transform.position.x, GlobalSystem.transform.position.y, GlobalSystem.transform.position.z));
+
+        if (moveForward)
+        {
+            planes[currentIndex].transform.Rotate(Vector3.forward * (-flightCurrent.dir));
+        }
+        else
+        {
+            planes[currentIndex].transform.Rotate(Vector3.forward * (180f - flightCurrent.dir));
+        }
+
+        if (flightCurrent.alt < 100f)
+        {
+            planes[currentIndex].transform.eulerAngles = new Vector3(planes[currentIndex].transform.rotation.x, planes[currentIndex].transform.rotation.y, 0f);
+            planes[currentIndex].transform.LookAt(new Vector3(GlobalSystem.transform.position.x, GlobalSystem.transform.position.y, GlobalSystem.transform.position.z));
+            planes[currentIndex].transform.localScale = Vector3.Lerp(planes[currentIndex].transform.localScale, planes[currentIndex].transform.localScale/2f, move);
+        }
+
+        if (flightCurrent.arr_iata == "IAD")
+        {
+            planes[currentIndex].gameObject.GetComponentsInChildren<Renderer>()[2].material = haloMat; // highlight with a different material
+        }
+
+        // update button information
+        string temp = flightCurrent.reg_number + "     " + flightCurrent.lat.ToString("F3") + "      " + flightCurrent.lng.ToString("F3") + "      " + flightCurrent.alt.ToString("F0") + "     " + flightCurrent.dir.ToString("F0");
+        if (flightNames[currentIndex] == flightCurrent.reg_number)
+            flightButtons[currentIndex].GetComponentInChildren<TextMeshProUGUI>().text = temp;
+
+    }
+
     public void PlanePosition()
     {
 
@@ -205,7 +247,8 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
             if (responseIndex == 0) moveForward = true;
         }
 
-        List<float> altAjust = AdjustAltitude(responseIndex);
+        float flightAltitudeAdjustment;
+        List<float> altitudeAjustments = AdjustAltitude(responseIndex);
 
         foreach (var reg_number in registrationNumbers)
         {
@@ -240,18 +283,18 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
 
                     if (flightCurrent.alt > flightResponses[responseIndex].response.Average(a => a.alt))
                     {
-                        flightCurrent.alt = flightCurrent.alt * altitudeAdjustment + altAjust.IndexOf(flightCurrent.alt) * 30;
+                        flightAltitudeAdjustment = flightCurrent.alt * altitudeAdjustment + altitudeAjustments.IndexOf(flightCurrent.alt) * 20;
                     }
                     else
                     {
-                        flightCurrent.alt = flightCurrent.alt * altitudeAdjustment - altAjust.IndexOf(flightCurrent.alt) * 30;
+                        flightAltitudeAdjustment = flightCurrent.alt * altitudeAdjustment - altitudeAjustments.IndexOf(flightCurrent.alt) * 20;
                     }
 
                     planeNames = planes.Select(a => a.name).ToList(); // get the names of all current planes
                     planeIndex = planeNames.IndexOf(reg_number); // get the index of this plane 
                     
                     if (planeIndex != -1)
-                    UpdatePlanePosition(planeIndex, flightCurrent); // update position of the plane
+                    UpdatePlanePosition(planeIndex, flightCurrent, flightAltitudeAdjustment); // update position of the plane
                 }
 
                 // the name of the plane is facing the player
@@ -266,43 +309,7 @@ public class ListJsonPlaneLocation_zero : MonoBehaviour
         }
     }
 
-    private void UpdatePlanePosition(int currentIndex, FlightsEmbeddedField flightCurrent)
-    {
 
-        Vector3 endPosition;
-        Quaternion endRotation;
-        Quaternion rotation;
-
-        endPosition = GetXYZPositions(flightCurrent);
-        rotation = Quaternion.Euler(0f, -(90f - GlobalSystem.transform.rotation.eulerAngles.y), 0f); // adjust plane location to GlobalSystem rotation
-        endPosition = GlobalSystem.transform.position + rotation * (endPosition - GlobalSystem.transform.position);
-        endRotation = rotation * Quaternion.Euler(0f, -flightCurrent.dir, 0f);
-
-        planes[currentIndex].transform.position = Vector3.MoveTowards(planes[currentIndex].transform.position, endPosition, move);
-
-        planes[currentIndex].transform.LookAt(new Vector3(GlobalSystem.transform.position.x, GlobalSystem.transform.position.y, GlobalSystem.transform.position.z));
-
-        if (moveForward)
-        {
-            //planes[currentIndex].transform.Rotate(0f, 0f, -flightCurrent.dir, Space.Self);
-            //planes[currentIndex].gameObject.GetComponentsInChildren<Transform>()[1].transform.LookAt(endPosition);
-        }
-        else
-        {
-            //planes[currentIndex].transform.Rotate(0f, 0f, flightCurrent.dir, Space.Self);
-        }
-
-        if (flightCurrent.arr_iata == "IAD")
-        {
-            planes[currentIndex].gameObject.GetComponentsInChildren<Renderer>()[2].material = haloMat; // highlight with a different material
-        }
-
-        // update button information
-        string temp = flightCurrent.reg_number + "     " + flightCurrent.lat.ToString("F3") + "      " + flightCurrent.lng.ToString("F3") + "      " + flightCurrent.alt.ToString("F0") + "     " + flightCurrent.dir.ToString("F0");
-        if (flightNames[currentIndex] == flightCurrent.reg_number)
-            flightButtons[currentIndex].GetComponentInChildren<TextMeshProUGUI>().text = temp;
-
-    }
 
     private List<float> AdjustAltitude(int responseIndex)
     {
